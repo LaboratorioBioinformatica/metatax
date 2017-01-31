@@ -27,13 +27,14 @@ If you want to test MetaTax, create a file with the following structure:
         ... and so on, for any number of reads files
 
 Currently MetaTax supports output from the following taxonomic classifiers:
+
 * Clark
 * Clark-S
 * Kraken
 * OneCodex
 * USEARCH/Blastn\*
 
-\* # Note for USEARCH/Blastn #
+### \* Note for USEARCH/Blastn ###
 
 It is important to note that for USEARCH/Blastn, the supported format is ``blast6out''. Furthermore, before
 calling MetaTax with an output from USEARCH/Blastn, the output must be formatted to be readable. 
@@ -41,6 +42,7 @@ calling MetaTax with an output from USEARCH/Blastn, the output must be formatted
 To do so, please run the script *process_usearch.py*. It uses the best-match criteria to select the taxonID
 for each read from the USEARCH/Blastn output. You can configure the values used to detect the best hit by
 editing this script. In the very beginning it defines these values:
+
 * maxE (defaul 1e-4): maximum E-value to consider a hit (i.e. hits with E-value above this limit will not be considered)
 * minIdentity (default 80): min percent of identity to consider a hit
 * minSizeFactor (default 0.5): min percent of aligment length relative to the mean reads size
@@ -50,4 +52,4 @@ When 2 hits for the same read are considered, we choose the one with the highest
 then we choose the one with the lowest E-value. Please feel free to implement your own ``best-hit'' approach by modifying 
 the script *process_usearch.py*.
 
-Doubts or comments: (diaztula@ime.usp.br)[mailto:diaztula@ime.usp.br]
+Doubts or comments: [diaztula@ime.usp.br](mailto:diaztula@ime.usp.br)
