@@ -3,4 +3,4 @@ sys.path.append("../")
 from getTaxonomyFromEte3 import getTaxonomy as gt
 
 def getTaxonomy(srcFile):
-    return gt(srcFile, readNameColumn = 0, taxIdColumn = 3, skipHeader = False, sep=",", secondOption = 5)
+    return gt(srcFile, readNameColumn = 0, taxIdColumn = 3, skipHeader = False, sep=",")
