@@ -1,11 +1,13 @@
 import numpy as np, sys
 from util import *
 import config
+import scipy.stats
 
 EQUAL        = 1
 COMPATIBLE   = 2
 INCOMPATIBLE = 3
 
+norm = scipy.stats.norm(0, 0.5)
 # ----------------------------------------------
 class Node(object):
     """Represents a single branch of the taxon ID tree. 
@@ -18,8 +20,9 @@ class Node(object):
     """
     def __init__(self, lineage):
         self.lineage = lineage
-        self.equalC  = 1
-        self.compatC = 0
+        self.equalC  = 1.0
+        self.compatC = 0.0
+        self.weight  = norm.pdf(0) # 1.0
 
 # ----------------------------------------------
 class ClassTree(object):
@@ -28,7 +31,7 @@ class ClassTree(object):
     def __init__(self):
         self.roots    = []
         self.lineages = []
-
+        self.minw = sum(norm.pdf([0, 1]))
 
     def compare(self, lineage1, lineage2):
         """Compares two lineages, assuming that the first one has the lowest level 
@@ -36,7 +39,7 @@ class ClassTree(object):
         Args:
             lineage1: one lineage having the lowest level.
             lineage2: the other lineage.
-        Returns: EQUAL, COMPATIBLE, or INCOMPATIBLE
+        Returns: EQUAL, COMPATIBLE, or INCOMPATIBLE.
         """
         if lineage1.keys()[-1] == lineage2.keys()[-1] and lineage1[lineage1.keys()[-1]] == lineage2[lineage2.keys()[-1]]:
             return EQUAL
@@ -72,19 +75,26 @@ class ClassTree(object):
                 # Find if lineage is equal to any axisting root or the largest root compatible with it
                 compat = []
                 equal  = False
+                compat = False
                 for i, node in enumerate(self.roots):
                     result = self.compare(node.lineage, lineage)
                     if result == EQUAL:
                         equal = True
                         node.equalC += 1
+                        node.weight += norm.pdf(0) # 1.0
                         break
                     elif result == COMPATIBLE:
-                       compat.append(node)
-                if len(compat) == 0:
+                        node.compatC += 1
+                        compat = True
+                        _, index1 = self.getLowestLevel([node.lineage], config.allowedRank)
+                        _, index2 = self.getLowestLevel([lineage], config.allowedRank)
+                        if False:
+                            weight = 1.0/(abs(index1-index2)+1)
+                        else:
+                            weight = norm.pdf(abs(index1-index2))
+                        node.weight += weight
+                if not equal and not compat:
                     self.roots.append(Node(lineage))
-                else:
-                    for c in compat:
-                        c.compatC += 1
 
     def getLowestLevel(self, lineages, levels):
         """Lazy method to find the lowest level (e.g. species, genus, ...) present it at least
@@ -133,7 +143,7 @@ class ClassTree(object):
         # endup with the larger lineages with the lower levels first.
         # Sort by taxonomy tree length
         l = [len(c) for c in self.lineages]
-        idxs = list(np.argsort(l))
+        idxs = list(np.argsort(l, kind='mergesort'))
         idxs.reverse()
         largerLineages = [self.lineages[i] for i in idxs]
         
@@ -141,7 +151,7 @@ class ClassTree(object):
         for l in largerLineages:
             dummy, index = self.getLowestLevel([l], config.allowedRank)
             lowestRankList.append(index)
-        idxs = list(np.argsort(lowestRankList))
+        idxs = list(np.argsort(lowestRankList, kind='mergesort'))
         sortedLineages = [largerLineages[i] for i in idxs]
         self.lineages = sortedLineages
         # Now lineages are sorted first by number of ranks and second by lowest level
@@ -156,16 +166,16 @@ class ClassTree(object):
             self.roots    = []
             for l in lineages:
                 self.__addClassification(l)
-            rank, tid, votes, completeLin = self.__getClassification()
+            rank, tid, votes, weight, completeLin = self.__getClassification()
             if rank == "disagreement":
                 # No classification, prune the last level if possible
                 newLineages = self.pruneLowestLevel(lineages)
                 if len(newLineages) > 0:
                     lineages = newLineages
                 else:
-                    return "disagreement", "disagreement", 0, None
+                    return "disagreement", "disagreement", 0, weight, None
             else:
-                return rank, tid, votes, completeLin
+                return rank, tid, votes, weight, completeLin
     # --------------------------------------------
 
     def __getClassification(self):
@@ -179,17 +189,18 @@ class ClassTree(object):
         if len(self.roots) == 0:
             return "NA", "0", 0, None
         elif len(self.roots) == 1:
-            return self.roots[0].lineage.keys()[-1], self.roots[0].lineage.values()[-1], self.roots[0].equalC + self.roots[0].compatC, self.roots[0].lineage
+            return self.roots[0].lineage.keys()[-1], self.roots[0].lineage.values()[-1], self.roots[0].equalC + self.roots[0].compatC, self.roots[0].weight, self.roots[0].lineage
         # First sort by the sum of equalC + compatC
-        l = [r.equalC + r.compatC for r in self.roots]
+        ### l = [r.equalC + r.compatC for r in self.roots]
+        l = [r.weight for r in self.roots]
         idxs = list(np.argsort(l))
         idxs.reverse()
         sortedRoots = [self.roots[i] for i in idxs]
         # Simplest scenario: no ties
         if l.count(l[idxs[0]]) == 1:
-            return sortedRoots[0].lineage.keys()[-1], sortedRoots[0].lineage.values()[-1], sortedRoots[0].equalC + sortedRoots[0].compatC, sortedRoots[0].lineage
+            return sortedRoots[0].lineage.keys()[-1], sortedRoots[0].lineage.values()[-1], sortedRoots[0].equalC + sortedRoots[0].compatC, sortedRoots[0].weight, sortedRoots[0].lineage
         else: # We have a tie, then return "disagreement" so the algorithm can prune the tree 
-            return "disagreement", "disagreement", 0, None
+            return "disagreement", "disagreement", 0, 0.0, None
 
 if __name__ == "__main__":
     from collections import OrderedDict

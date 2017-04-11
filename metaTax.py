@@ -60,7 +60,10 @@ if __name__ == "__main__":
     argp = argparse.ArgumentParser()
     argp.add_argument('i', help = 'Input file with information about read files and classification results')
     argp.add_argument('o', help = 'Dir to write the results of meta-classification')
-    argp.add_argument('-log', help = 'Write log information (this could create a very big file! (default = 0)', required = False, action="store_true")
+    argp.add_argument('minw', help = 'Minimum weight of a classification to be considered (for 3 inputs recomended value is 1.5, whereas for 5 inputs it is 2)', type=float)
+    argp.add_argument('-log', help = 'Write log information (this could create a very big file!)', required = False, action="store_true")
+    argp.add_argument('-lineage', help = 'Create a file with the full linage but without statistics', required = False, action="store_true")
+
     args = argp.parse_args()
 
     inputFile    = args.i
@@ -75,16 +78,24 @@ if __name__ == "__main__":
     LOG = args.log
     writeFullLineage = True
     ncbi = NCBITaxa()
-    if LOG:
-        logF      = open(join(outDir, "log.txt") , "wt")
-    else:
-        logF      = open(os.devnull, "w")
 
     # Get reads information, including reads file name and data from different classifiers
     readsDict = loadInput(inputFile)
 
     # Analizing each read file and its corresponding classification data
     for readName in readsDict.keys():
+        # Creating output files
+        prefix = readName[readName.rfind('/')+1:]
+        classifiedF   = open(join(outDir, prefix+"_classified.tsv")  , "wt")
+        lowWeightF    = open(join(outDir, prefix+"_low_weight.tsv"), "wt")
+        disagreeF     = open(join(outDir, prefix+"_disagreement.tsv"), "wt")
+        naF           = open(join(outDir, prefix+"_NAs.tsv")         , "wt")
+        if args.lineage:
+            lineageF  = open(join(outDir, prefix+"_lineage.tsv")     , "wt")
+        if LOG:
+            logF      = open(join(outDir, prefix+"_log.txt")         , "wt")
+        else:
+            logF      = open(os.devnull, "w")
         logF.write("<=========================================================>\n")
         logF.write("Analyzing read file: %s\n"%readName)
         logF.write("Classifiers:\n")
@@ -95,12 +106,6 @@ if __name__ == "__main__":
             classifNames.append(c['classifName'])
             fullLineage = c['module'].getTaxonomy(c['classifData'])
             classifiers.append(fullLineage)
-
-        # Creating output files
-        prefix = readName[readName.rfind('/')+1:]
-        classifiedF   = open(join(outDir, prefix+"_classified.tsv")  , "wt")
-        disagreeF     = open(join(outDir, prefix+"_disagreement.tsv"), "wt")
-        naF           = open(join(outDir, prefix+"_NAs.tsv")         , "wt")
         if writeFullLineage:
             classifiedF.write("Read\tToolsN\tTotalClassif\tVotes\tPercentVotes\tFullLineage\n")
         else:
@@ -135,20 +140,32 @@ if __name__ == "__main__":
                     logF.write("Classification according to %s:\n"%(usedClassif[i]))
                     logF.write("%s\n"%(",".join( ["%s:%s"%(k, lineage[k]) for k in lineage.keys()] )))
                     logF.write("------------------------------>\n")
-                rank, tid, votes, completeLin = classTree.getClassification()
-                logF.write("Final classification by method \'%s\': %s: %s with %i votes\n"%(votingMethod, rank, tid, votes))
+                rank, tid, votes, weight, completeLin = classTree.getClassification()
+                logF.write("Final classification by method \'%s\': %s: %s with %i votes and weight %0.2f\n"%(votingMethod, rank, tid, votes, weight))
                 if rank == "NA":
                     naF.write("%s\n"%rname)
                 elif rank == "disagreement":
                     disagreeF.write("%s\n"%rname)
+                elif weight < classTree.minw: #args.minw:
+                    lowWeightF.write("%s\t%0.2f\n"%(rname, weight))
                 else:
-                    if writeFullLineage:
+                    stringList = None
+                    if args.lineage:
                         ll = list(completeLin.values())
                         names = ncbi.get_taxid_translator(ll)
                         stringList = []
                         for i in range(len(completeLin)):
                             key_i = completeLin.keys()[i]
                             stringList.append("%s|%s|%s"%(key_i, names[ completeLin[key_i] ], completeLin[key_i]))
+                        lineageF.write("%s\t%s\n"%(rname, "\t".join(stringList)))
+                    if writeFullLineage:
+                        if stringList == None:
+                            ll = list(completeLin.values())
+                            names = ncbi.get_taxid_translator(ll)
+                            stringList = []
+                            for i in range(len(completeLin)):
+                                key_i = completeLin.keys()[i]
+                                stringList.append("%s|%s|%s"%(key_i, names[ completeLin[key_i] ], completeLin[key_i]))
                         classifiedF.write("%s\t%i\t%i\t%i\t%i\t%s\n"%(rname, len(classifiers), len(lineageList), votes, int(votes*100/len(classifiers)), "\t".join(stringList)))
                     else:
                         name = ncbi.get_taxid_translator([tid])

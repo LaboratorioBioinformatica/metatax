@@ -139,6 +139,8 @@ def getTaxonomy(srcFile, readNameColumn, taxIdColumn, skipHeader = True, sep = "
         else:
             lin = OrderedDict([("root", "0")])
         cleanReadName = l[readNameColumn].split(" ")[0].replace("@", "").replace(">", "").strip()
+        if cleanReadName.endswith("/1") or cleanReadName.endswith("/2"):
+            cleanReadName = cleanReadName[0:-2]
         # fout.write("%s\t%s\n"%(l[readNameColumn].split(" ")[0].replace("@", "").replace(">", "").strip(), lin))
         outDict[cleanReadName] = lin
     return outDict
