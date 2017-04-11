@@ -60,7 +60,6 @@ if __name__ == "__main__":
     argp = argparse.ArgumentParser()
     argp.add_argument('i', help = 'Input file with information about read files and classification results')
     argp.add_argument('o', help = 'Dir to write the results of meta-classification')
-    argp.add_argument('minw', help = 'Minimum weight of a classification to be considered (for 3 inputs recomended value is 1.5, whereas for 5 inputs it is 2)', type=float)
     argp.add_argument('-log', help = 'Write log information (this could create a very big file!)', required = False, action="store_true")
     argp.add_argument('-lineage', help = 'Create a file with the full linage but without statistics', required = False, action="store_true")
 
