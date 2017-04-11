@@ -1,4 +1,4 @@
-### MetaTax: Meta-classification of taxonomy classification ###
+## MetaTax: Meta-classification of taxonomy classification ##
 
 This is the source code of **MetaTax**, a meta-classification algorithm of taxonomy classification. 
 
@@ -51,27 +51,25 @@ When 2 hits for the same read are considered, we choose the one with the highest
 then we choose the one with the lowest E-value. Please feel free to implement your own ``best-hit'' approach by modifying 
 the script *process_usearch.py*.
 
-## Output format ##
+### Output format ###
 
 MetaTax outputs several files for each input. The output files are:
 
-* *file_name*_classified.tsv: tab-separated file with reads that were classifierd according to MetaTax algorithm. For each read it provides:
-  * Read: sequence name
-  * ToolsN: number of tools specified in the input file
-  * TotalClassif: number of tools that classified the sequence
-  * Votes: number of votes that supported the sequence classification
-  * PercentVotes: percent of votes relative to ToolsN
-  * FullLineage: complete lineage of the classification. Each node in the lineage has the format <rank|name|taxID>.
-* *file_name*__disagreement.tsv: tab-separated file with the reads for which an agreement was not possible, e.g. some 
-tools consider it as a bacteria while other tools consider as virus, without a majority concensus.
-* *file_name*_low_weight.tsv: tab-separated file with reads that do not achieved a minimum weight to consider the classification as valid. This
-weight is automatically computed as follows: given a taxon i and a taxo j such that j is ancestral of i, then the weight of i supporting
-the classification of j is the value of the probability density function of a normal distribution with mean 0 and std 0.5, with x value 
-equal to level(i) - level(j). The function level() returns the level of the taxonomy in the tree. 
-* *file_name*_NAs.tsv: tab-separated file with reads that were not classified.
-* *file_name*_lineage.tsv: optional tab-separated file (activate with -lineage when calling MetaTax) with reads that were classified and their full lineage, without
+* __*file_name*_classified.tsv__: tab-separated file with reads that were classified according to MetaTax. For each read it provides:
+    * **Read**: sequence name
+    * **ToolsN**: number of tools specified in the input file
+    * **TotalClassif**: number of tools that classified the sequence
+    * **Votes**: number of votes that supported the sequence classification
+    * **PercentVotes**: percent of votes relative to ToolsN
+    * **FullLineage**: complete lineage of the classification. Each node in the lineage has the format <rank|name|taxID>.
+* __*file_name*_disagreement.tsv__: tab-separated file with the reads for which an agreement was not possible, e.g. some 
+tools consider it as a bacteria while other tools consider as virus, without a majority consensus.
+* __*file_name*_low_weight.tsv__: tab-separated file with reads that do not achieved a minimum weight to consider the classification as valid. This weight is automatically computed as follows: given a taxon *i* and a taxon *j* such that *i* is an ancestral of *j*, in the classification tree, then the weight of *i* supporting
+the classification of *j* is the value of the probability density function of a normal distribution with mean 0 and std 0.5, with x value equal to level(*i*) - level(*j*). The function level() returns the level of the node in the taxonomy tree. 
+* __*file_name*_NAs.tsv__: tab-separated file with reads that were not classified.
+* __*file_name*_lineage.tsv__: optional tab-separated file (activate with -lineage when calling MetaTax) with reads that were classified and their full lineage, without
 any statistics.
-* *file_name*_log.txt: optional text file (activate with -log) with plenty of details for each read analysed. This file can be really large and 
-should be used for debuf only.
+* __*file_name*_log.txt__: optional text file (activate with -log) with plenty of details for each read analysed. This file can be really large and 
+should be used for debug only.
 
 Doubts or comments: [diaztula@ime.usp.br](mailto:diaztula@ime.usp.br)
