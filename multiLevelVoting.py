@@ -7,7 +7,6 @@ EQUAL        = 1
 COMPATIBLE   = 2
 INCOMPATIBLE = 3
 
-norm = scipy.stats.norm(0, 0.5)
 # ----------------------------------------------
 class Node(object):
     """Represents a single branch of the taxon ID tree. 
@@ -15,23 +14,28 @@ class Node(object):
 	lineage: Ordered dict with the lineage with the format: 'rank: taxonId'.
     	equalC is the number of branches equal to this one.
     	compatC is the number of branches compatible to this one.
+    	weight: weight given to this node
     	Note that equalC+compatC is the number of "votes" this branch received, while
 	    running the meta-classification.
     """
-    def __init__(self, lineage):
+    def __init__(self, lineage, weight):
         self.lineage = lineage
         self.equalC  = 1.0
         self.compatC = 0.0
-        self.weight  = norm.pdf(0) # 1.0
+        self.weight  = weight
 
 # ----------------------------------------------
 class ClassTree(object):
     """Class for running the Metatax method.
     """
-    def __init__(self):
+    def __init__(self, pedantic=False):
         self.roots    = []
         self.lineages = []
-        self.minw = sum(norm.pdf([0, 1]))
+        self.norm = scipy.stats.norm(0, 0.5)
+        if pedantic:
+            self.minw = sum(self.norm.pdf([0, 0]))
+        else:
+            self.minw = sum(self.norm.pdf([0, 1]))
 
     def compare(self, lineage1, lineage2):
         """Compares two lineages, assuming that the first one has the lowest level 
@@ -70,7 +74,7 @@ class ClassTree(object):
         """
         if not isNA(lineage): # Discard NA classification
             if len(self.roots) == 0: # If it is the first lineage, make it a root
-                self.roots.append(Node(lineage))
+                self.roots.append(Node(lineage, self.norm.pdf(0)))
             else:
                 # Find if lineage is equal to any axisting root or the largest root compatible with it
                 compat = []
@@ -81,7 +85,7 @@ class ClassTree(object):
                     if result == EQUAL:
                         equal = True
                         node.equalC += 1
-                        node.weight += norm.pdf(0) # 1.0
+                        node.weight += self.norm.pdf(0) # 1.0
                         break
                     elif result == COMPATIBLE:
                         node.compatC += 1
@@ -91,10 +95,10 @@ class ClassTree(object):
                         if False:
                             weight = 1.0/(abs(index1-index2)+1)
                         else:
-                            weight = norm.pdf(abs(index1-index2))
+                            weight = self.norm.pdf(abs(index1-index2))
                         node.weight += weight
                 if not equal and not compat:
-                    self.roots.append(Node(lineage))
+                    self.roots.append(Node(lineage, self.norm.pdf(0)))
 
     def getLowestLevel(self, lineages, levels):
         """Lazy method to find the lowest level (e.g. species, genus, ...) present it at least

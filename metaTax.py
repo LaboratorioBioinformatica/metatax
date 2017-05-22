@@ -62,6 +62,7 @@ if __name__ == "__main__":
     argp.add_argument('o', help = 'Dir to write the results of meta-classification')
     argp.add_argument('-log', help = 'Write log information (this could create a very big file!)', required = False, action="store_true")
     argp.add_argument('-lineage', help = 'Create a file with the full linage but without statistics', required = False, action="store_true")
+    argp.add_argument('-pedantic', help = 'Uses a more strict weight threshold to consider valid classifications', required = False, action="store_true")
 
     args = argp.parse_args()
 
@@ -86,7 +87,7 @@ if __name__ == "__main__":
         # Creating output files
         prefix = readName[readName.rfind('/')+1:]
         classifiedF   = open(join(outDir, prefix+"_classified.tsv")  , "wt")
-        lowWeightF    = open(join(outDir, prefix+"_low_weight.tsv"), "wt")
+        lowWeightF    = open(join(outDir, prefix+"_low_weight.tsv")  , "wt")
         disagreeF     = open(join(outDir, prefix+"_disagreement.tsv"), "wt")
         naF           = open(join(outDir, prefix+"_NAs.tsv")         , "wt")
         if args.lineage:
@@ -106,9 +107,9 @@ if __name__ == "__main__":
             fullLineage = c['module'].getTaxonomy(c['classifData'])
             classifiers.append(fullLineage)
         if writeFullLineage:
-            classifiedF.write("Read\tToolsN\tTotalClassif\tVotes\tPercentVotes\tFullLineage\n")
+            classifiedF.write("Read\tToolsN\tTotalClassif\tVotes\tPercentVotes\tWeight\tFullLineage\n")
         else:
-            classifiedF.write("Read\tToolsN\tTotalClassif\tVotes\tPercentVotes\tLineage\n")
+            classifiedF.write("Read\tToolsN\tTotalClassif\tVotes\tPercentVotes\tWeight\tLineage\n")
         if readName.endswith(".fa") or readName.endswith(".fasta"):
             ext = "fasta"
         else:
@@ -117,7 +118,7 @@ if __name__ == "__main__":
         # For each read
         for r in reads:
             if votingMethod == "multilevel":
-                classTree = multiLevelVoting.ClassTree()
+                classTree = multiLevelVoting.ClassTree(args.pedantic)
             lineageList = []
             usedClassif = []
             rname = r.name.split("/")[0]
@@ -165,11 +166,11 @@ if __name__ == "__main__":
                             for i in range(len(completeLin)):
                                 key_i = completeLin.keys()[i]
                                 stringList.append("%s|%s|%s"%(key_i, names[ completeLin[key_i] ], completeLin[key_i]))
-                        classifiedF.write("%s\t%i\t%i\t%i\t%i\t%s\n"%(rname, len(classifiers), len(lineageList), votes, int(votes*100/len(classifiers)), "\t".join(stringList)))
+                        classifiedF.write("%s\t%i\t%i\t%i\t%0.2f\t%0.2f\t%s\n"%(rname, len(classifiers), len(lineageList), votes, votes*100.0/len(classifiers), weight, "\t".join(stringList)))
                     else:
                         name = ncbi.get_taxid_translator([tid])
                         name = name[int(tid)]
-                        classifiedF.write("%s\t%i\t%i\t%i\t%i\t%s\n"%(rname, len(lineageList), votes, int(votes*100/len(classifiers)), "|".join([rank, name, tid])))
+                        classifiedF.write("%s\t%i\t%i\t%i\t%0.2f\t%0.2f\t%s\n"%(rname, len(lineageList), votes, int(votes*100/len(classifiers)), "|".join([rank, name, tid])))
             else:
                 naF.write("%s\n"%rname)
                 logF.write("Read without classification: NA\n")
