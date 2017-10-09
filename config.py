@@ -6,9 +6,11 @@ allowedRank = ["superkingdom", "phylum", "class", "order", "family", "genus", "s
 'plugins' folder. If you decide to include more tools, please implement their plugins and put them
 here"""
 plugins = {
-        'clark': 'getTaxonomy_clark',
-        'clarkS': 'getTaxonomy_clarkS',
-        'kraken': 'getTaxonomy_kraken',
-        'usearch': 'getTaxonomy_usearch',
-        'onecodex': 'getTaxonomy_onecodex',
-        'centrifuge': 'getTaxonomy_centrifuge'}
+        'caravela':   'getTaxonomy_caravela',
+        'centrifuge': 'getTaxonomy_centrifuge',
+        'clark':      'getTaxonomy_clark',
+        'clarkS':     'getTaxonomy_clarkS',
+        'kraken':     'getTaxonomy_kraken',
+        'onecodex':   'getTaxonomy_onecodex',
+        'usearch':    'getTaxonomy_usearch',
+        }
